@@ -8,7 +8,7 @@ if not os.path.exists(DATA_DIR):
     os.mkdir(DATA_DIR)
 
 # Number of classes to be trained. I'm only training four classes: H, E, L, and O
-number_of_classes = 4
+number_of_classes = 1
 class_size = 100  # Number of images to be captured for each class
 
 cap = cv2.VideoCapture(0)  # Capture video from the camera
@@ -28,23 +28,23 @@ try:
             ret, frame = cap.read()
             frame = cv2.flip(frame, 1)  # Flip the frame horizontally
 
-            # Display the instructions for capturing images
+            # Display the instructions for capturing images and display the frame
             text = "Press 'C' to capture images for class {}.".format(i)
-            if cv2.waitKey(25) & 0xFF == ord("c"):
-                # Change the text to "Capturing..." when the user presses the specified key
-                text = "Capturing..."
-
             cv2.putText(frame, text, (50, 50), cv2.FONT_HERSHEY_PLAIN,
                         2, (0, 0, 255), 2, cv2.LINE_AA)
             cv2.imshow("Capturing images...", frame)
-
-            if text == "Capturing...":
+            if cv2.waitKey(25) & 0xFF == ord("c"):
                 break
 
         for j in range(class_size):
             ret, frame = cap.read()
             if ret:
                 frame = cv2.flip(frame, 1)  # Flip the frame horizontally
+                cv2.putText(frame, "Capturing...", (50, 50), cv2.FONT_HERSHEY_PLAIN,
+                            2, (0, 0, 255), 2, cv2.LINE_AA)
+                cv2.imshow("Capturing images...", frame)
+                cv2.waitKey(25)
+
                 img_name = os.path.join(class_dir, "{}.jpg".format(j))
                 cv2.imwrite(img_name, frame)
             else:
