@@ -7,3 +7,6 @@ processed_dataset
 
 # Environment variables
 .env
+
+# Python
+__pycache__/
