@@ -1,0 +1,9 @@
+# MacOS
+.DS_Store
+
+# Dataset
+dataset
+processed_dataset
+
+# Environment variables
+.env

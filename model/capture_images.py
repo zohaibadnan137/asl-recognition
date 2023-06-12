@@ -1,15 +1,19 @@
 # Import required libraries
 import os
 import cv2
+from dotenv import load_dotenv
 
 # Create a folder to store the images
 DATA_DIR = "./dataset"
 if not os.path.exists(DATA_DIR):
     os.mkdir(DATA_DIR)
 
+load_dotenv()  # Load the environment variables
+
 # Number of classes to be trained. I'm only training four classes: H, E, L, and O
-number_of_classes = 1
-class_size = 100  # Number of images to be captured for each class
+number_of_classes = int(os.getenv("NUM_CLASSES"))
+# Number of images to be captured for each class
+class_size = int(os.getenv("CLASS_SIZE"))
 
 cap = cv2.VideoCapture(0)  # Capture video from the camera
 if not cap.isOpened():
