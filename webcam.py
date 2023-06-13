@@ -4,6 +4,8 @@ import torch
 from torchvision import transforms
 from PIL import Image
 import numpy as np
+
+# Import the model class
 from model.model import Model
 
 # Load the model
@@ -22,6 +24,10 @@ transform = transforms.Compose([
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     raise IOError("The camera cannot be opened!")
+
+# Load the Haar cascade for face detection
+face_cascade = cv2.CascadeClassifier(
+    'cascade/haarcascade_frontalface_default.xml')
 
 # Create a named window for the cropped hand image
 cv2.namedWindow('Cropped Hand', cv2.WINDOW_NORMAL)
@@ -72,44 +78,64 @@ while True:
         # Find the bounding box of the hand region
         x, y, w, h = cv2.boundingRect(contour)
 
-        # Crop the hand region from the original image
-        cropped_hand = masked_image[y:y+h, x:x+w]
+        # Detect faces in the frame using Haar cascades
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(
+            gray, scaleFactor=1.3, minNeighbors=5)
 
-        # Resize the cropped hand to 224x224
-        cropped_hand = cv2.resize(cropped_hand, (224, 224))
+        # Check if any face overlaps with the cropped hand
+        face_overlaps = False
+        for (face_x, face_y, face_w, face_h) in faces:
+            if (x < face_x + face_w and x + w > face_x and y < face_y + face_h and y + h > face_y):
+                face_overlaps = True
+                break
 
-        # Convert the cropped hand to PIL Image
-        cropped_hand = Image.fromarray(cropped_hand)
+        if face_overlaps:
+            # Display the original frame without any modifications
+            cv2.imshow('ASL Recognition', frame)
 
-        # Preprocess the cropped hand
-        input_tensor = transform(cropped_hand).unsqueeze(0)
+            # Display a black image instead of the cropped hand
+            cv2.imshow('Cropped Hand', np.zeros((224, 224, 3)))
 
-        # Perform inference
-        with torch.no_grad():
-            output = model(input_tensor)
+        else:
+            # Crop the hand region from the masked image
+            cropped_hand = masked_image[y:y+h, x:x+w]
 
-        # Get the predicted class
-        _, predicted_idx = torch.max(output, 1)
-        predicted_class = predicted_idx.item()
+            # Resize the cropped hand to 224x224
+            cropped_hand = cv2.resize(cropped_hand, (224, 224))
 
-        # Map the predicted class index to its corresponding label
-        class_labels = ['H', 'E', 'L', 'O']
-        predicted_label = class_labels[predicted_class]
+            # Convert the cropped hand to PIL Image
+            cropped_hand = Image.fromarray(cropped_hand)
 
-        # Draw the bounding box around the hand region
-        cv2.rectangle(frame, (x, y), (x + w, y + h),
-                      (0, 0, 255), thickness=3)
+            # Preprocess the cropped hand
+            input_tensor = transform(cropped_hand).unsqueeze(0)
 
-        # Display the predicted class on the image
-        cv2.putText(frame, predicted_label, (x, y - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 3)
+            # Perform inference
+            with torch.no_grad():
+                output = model(input_tensor)
 
-        # Display the resulting frame
-        cv2.imshow('ASL Recognition', frame)
+            # Get the predicted class
+            _, predicted_idx = torch.max(output, 1)
+            predicted_class = predicted_idx.item()
 
-        # Display the cropped hand image in a separate window
-        cropped_hand_np = np.array(cropped_hand)
-        cv2.imshow('Cropped Hand', cropped_hand_np)
+            # Map the predicted class index to its corresponding label
+            class_labels = ['H', 'E', 'L', 'O']
+            predicted_label = class_labels[predicted_class]
+
+            # Draw the bounding box around the hand region
+            cv2.rectangle(frame, (x, y), (x + w, y + h),
+                          (0, 0, 255), thickness=3)
+
+            # Display the predicted class on the image
+            cv2.putText(frame, predicted_label, (x, y - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 3)
+
+            # Display the resulting frame
+            cv2.imshow('ASL Recognition', frame)
+
+            # Display the cropped hand image in a separate window
+            cropped_hand_np = np.array(cropped_hand)
+            cv2.imshow('Cropped Hand', cropped_hand_np)
 
     # Quit if 'q' is pressed
     if cv2.waitKey(1) & 0xFF == ord('q'):
